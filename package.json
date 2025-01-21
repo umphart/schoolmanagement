@@ -1,0 +1,20 @@
+{
+  "name": "student-management-system",
+  "version": "1.0.0",
+  "description": "A system to manage student records",
+  "main": "students.js",
+  "scripts": {
+    "start": "nodemon students.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^2.2.5"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.7"
+  }
+}
