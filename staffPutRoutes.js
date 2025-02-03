@@ -2,37 +2,64 @@
 const express = require('express');
 const db = require('./db');
 const router = express.Router();
+const multer = require('multer');
 
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // path to store uploaded files
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + '-' + file.originalname); // unique file name
+  }
+});
+
+const upload = multer({ storage: storage });
 // Update Staff Route
-router.put('/api/staff/update/:staffId', (req, res) => {
-    const staffId = decodeURIComponent(req.params.staffId);  // Ensure this is properly decoded
-    
-    const { name, department, phone, email, subject, gender } = req.body;
-  
-    // Update staff record in the database
-    const updateQuery = `
-      UPDATE staff
-      SET name = ?, department = ?, phone = ?, email = ?, subject = ?, gender = ?
+// Update staff details and user record
+router.put('/api/staff/update/:staffId', upload.single('photo'), (req, res) => {
+  const staffId = decodeURIComponent(req.params.staffId);
+  const { name, department, phone, email,  gender } = req.body;
+  const profilePhoto = req.file ? req.file.filename : null;
+
+  // Update staff record in the staff table
+  const updateQuery = `
+    UPDATE staff
+    SET name = ?, department = ?, phone = ?, email = ?,  gender = ?, profilePhoto = ?
+    WHERE staffID = ?
+  `;
+  const updateData = [name, department, phone, email, gender, profilePhoto, staffId];
+
+  db.query(updateQuery, updateData, (err, result) => {
+    if (err) {
+      console.error('Error updating staff record:', err);
+      return res.status(500).json({ error: 'Error updating staff record' });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Staff member not found' });
+    }
+
+    // Now update the corresponding user record in the users table
+    const userQuery = `
+      UPDATE users
+      SET name = ?, profilePhoto = ?, department = ?, email = ?, gender = ?, phone = ?
       WHERE staffID = ?
     `;
-    const updateData = [name, department, phone, email, subject, gender, staffId];  // <-- Use staffId here
     
-    db.query(updateQuery, updateData, (err, result) => {
+    db.query(userQuery, [name, profilePhoto, department, email, gender, phone, staffId], (err, result) => {
       if (err) {
-        console.error('Error updating staff record:', err);
-        return res.status(500).json({ error: 'Error updating staff record' });
+        console.error('Error updating user record for staff:', err);
+        return res.status(500).json({ error: 'Error updating user record for staff' });
       }
-  
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ error: 'Staff member not found' });
-      }
-  
+
       return res.status(200).json({
-        message: 'Staff record updated successfully',
-        staffId // Return the updated staff ID
+        message: 'Staff and user records updated successfully',
+        staffId,
       });
     });
   });
+});
+
   router.get('/api/staff/:staffId', (req, res) => {
     const staffId = decodeURIComponent(req.params.staffId);
 
